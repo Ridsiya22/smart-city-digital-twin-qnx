@@ -1,197 +1,231 @@
-1. Project Overview
-Developed a Smart City Digital Twin using QNX RTOS on a Raspberry Pi 4.
-The system maintains a real-time digital representation of different smart-city subsystems.
-Focuses on real-time synchronization, inter-process communication, scheduling, shared memory, and fault monitoring.
-Sensor values are currently software simulated to validate the QNX real-time architecture.
+# Smart City Digital Twin – QNX RTOS
 
-3. Smart-City Subsystems
-Environment
-Temperature
-Atmospheric pressure
-Traffic
-Distance
-Vehicle count
-Traffic level
-Energy
-Voltage
-Current
-Power
-Water
-Water level
-Flow rate
+## 1. Project Overview
 
-5. QNX RTOS Concepts Used
-QNX Microkernel architecture
-POSIX threads
-Priority-based scheduling
-SCHED_RR scheduling policy
-QNX Native IPC
-POSIX shared memory
-Process-shared mutex
-QNX Pulses
-Process-death notification
-Real-time timing measurement
+The **Smart City Digital Twin – Real-Time Synchronization Engine** is a QNX RTOS-based application developed on a **Raspberry Pi 4 Model B**.
 
-7. Process and Thread Priorities
-Twin Synchronizer – Priority 30
-Fault Monitor – Priority 25
-Sensor Acquisition – Priority 20
-Dashboard – Priority 15
-CLI – Priority 15
+The project creates a real-time digital representation of multiple smart-city subsystems and demonstrates core **QNX RTOS concepts**, including:
 
-Higher-priority real-time activities are given higher scheduling priority.
+- Real-time thread scheduling
+- Inter-process communication
+- POSIX shared memory
+- Mutex-based synchronization
+- Fault monitoring
+- Process-death detection
+- Sequence-gap detection
+- Real-time latency measurement
+- Deadlock avoidance
 
-5. Inter-Process Communication
-Sensor acquisition processes communicate with the Synchronizer using QNX message passing.
-Implemented APIs:
-MsgSend()
-MsgReceive()
-MsgReply()
-The Synchronizer receives sensor messages and updates the digital twin state.
-Message sequence numbers are used to identify missing updates.
+The current prototype uses **software-simulated sensor data** to validate the real-time architecture. Physical sensor integration can be added without changing the higher-level synchronization and monitoring architecture.
 
-7. Digital Twin State
-A shared TwinState structure maintains the latest system information.
-It contains:
-Environment state
-Traffic state
-Energy state
-Water state
-Total messages
-Sequence-gap count
-Synchronization latency
-Sensor fault status
-Process status
-Access to shared state is protected using a process-shared POSIX mutex.
+---
 
-9. Real-Time Monitoring
+## 2. Smart City Subsystems
 
-The system monitors:
+The Digital Twin represents four major subsystems:
 
-Sensor synchronization latency
-Message-processing timing
-Sequence numbers
-Sensor data freshness
-Fault status
-Process status
-CPU/thread behavior using QNX Momentics System Profiler
+### Environment
+- Temperature
+- Atmospheric pressure
 
-8. Fault Monitoring
+### Traffic
+- Distance
+- Vehicle count
+- Traffic level
 
-The Fault Monitor identifies:
+### Energy
+- Voltage
+- Current
+- Power
 
-Stale data
-Detects when a sensor has not updated within the configured timeout.
-Sequence gaps
-Detects missing sensor messages.
-Process death
-Uses QNX process-death notification and Pulses to detect process termination.
+### Water
+- Water level
+- Flow rate
 
-Configured sensor timeout:
+---
 
+## 3. Objectives
+
+The main objectives of the project are:
+
+- Build a real-time Smart City Digital Twin using QNX RTOS.
+- Demonstrate QNX native message-passing IPC.
+- Implement priority-based real-time scheduling.
+- Maintain a synchronized digital twin state.
+- Measure sensor synchronization latency.
+- Detect stale sensor data.
+- Detect missing sensor messages using sequence numbers.
+- Detect process-death events using QNX process-manager notifications.
+- Demonstrate safe deadlock avoidance.
+- Analyze real-time system behavior using QNX Momentics System Profiler.
+
+---
+
+## 4. QNX RTOS Concepts Used
+
+The project demonstrates the following QNX and POSIX concepts:
+
+- QNX microkernel architecture
+- POSIX threads
+- `pthread_create()`
+- `pthread_join()`
+- `SCHED_RR` scheduling
+- Priority-based execution
+- QNX Native IPC
+- `MsgSend()`
+- `MsgReceive()`
+- `MsgReply()`
+- QNX Channels
+- QNX Pulses
+- Process-death notification
+- POSIX shared memory
+- Process-shared POSIX mutex
+- `mmap()`
+- `clock_gettime()`
+- Real-time latency measurement
+
+---
+
+## 5. Process and Thread Priorities
+
+The application uses different priorities according to the importance of each function:
+
+| Component | Priority |
+|-----------|----------|
+| Twin Synchronizer | 30 |
+| Fault Monitor | 25 |
+| Sensor Acquisition | 20 |
+| Dashboard | 15 |
+| CLI | 15 |
+
+The **Twin Synchronizer** is given the highest application priority because it is responsible for receiving sensor messages and updating the Digital Twin state.
+
+---
+
+## 6. Inter-Process Communication
+
+QNX native message passing is used for communication between the sensor acquisition layer and the Twin Synchronizer.
+
+The implementation uses:
+
+- `MsgSend()` to send sensor data.
+- `MsgReceive()` to receive sensor data.
+- `MsgReply()` to complete the request/reply transaction.
+
+Each sensor message contains:
+
+- Sensor ID
+- Sensor name
+- Sensor values
+- Sequence number
+- Timestamp
+
+Sequence numbers are used to identify missing sensor updates.
+
+---
+
+## 7. Digital Twin State
+
+The latest state of the smart-city system is maintained in a shared `TwinState` structure.
+
+The shared state contains:
+
+- Environment information
+- Traffic information
+- Energy information
+- Water information
+- Total message count
+- Sequence-gap count
+- Synchronization latency
+- Individual sensor fault status
+- Acquisition process status
+- Synchronizer process status
+
+A **process-shared POSIX mutex** is used to protect access to the shared Digital Twin state.
+
+---
+
+## 8. Sensor Acquisition
+
+The acquisition layer contains separate threads for each subsystem:
+
+- Environment thread
+- Traffic thread
+- Energy thread
+- Water thread
+
+Each thread:
+
+1. Generates or reads sensor data.
+2. Adds a sequence number.
+3. Records a timestamp.
+4. Sends the data to the Synchronizer using QNX IPC.
+5. Waits for the next acquisition period.
+
+The acquisition threads currently use `SCHED_RR` scheduling with priority 20.
+
+---
+
+## 9. Sensor Simulation
+
+The current implementation uses **software-simulated sensor values**.
+
+The simulated values are:
+
+- Dynamically updated.
+- Bounded within predefined limits.
+- Generated to represent realistic changes in sensor conditions.
+
+Simulation is used to validate the QNX real-time architecture independently of physical sensor communication.
+
+The architecture allows the simulated acquisition functions to be replaced by physical sensor interfaces in future development without changing the IPC, synchronization, fault-monitoring, or Digital Twin layers.
+
+---
+
+## 10. Physical Hardware Interface
+
+The prototype is developed for:
+
+- Raspberry Pi 4 Model B
+- 2 GB RAM
+- QNX RTOS
+
+Physical sensors prepared for integration include:
+
+- **BMP280** – Environment monitoring
+- **INA219** – Voltage and current monitoring
+- **HC-SR04** – Traffic/distance monitoring
+
+The current prototype does not claim the simulated values as physical sensor measurements.
+
+---
+
+## 11. Real-Time Monitoring
+
+The system monitors important real-time parameters such as:
+
+- Synchronization latency
+- Message-processing timing
+- Sensor sequence numbers
+- Sensor data freshness
+- Fault status
+- Process status
+- Thread execution
+- CPU utilization
+
+QNX Momentics System Profiler can be used to analyze the runtime behavior of the system.
+
+---
+
+## 12. Fault Monitoring
+
+The Fault Monitor is responsible for detecting abnormal system conditions.
+
+### Stale Data Detection
+
+A sensor is considered stale when its data has not been updated within the configured timeout period.
+
+The current timeout is:
+
+```text
 3000 ms
-9. Deadlock Handling
-A separate deadlock demonstration is included.
-Two shared resources are accessed by multiple threads.
-Threads follow a consistent resource-acquisition order.
-This demonstrates deadlock avoidance rather than intentionally creating an unsafe deadlock.
-10. Sensor Simulation
-Environment, traffic, energy, and water readings are currently generated by software.
-Values change gradually within predefined limits
-This allows the QNX architecture and real-time synchronization mechanisms to be tested without depending on physical sensor readings.
-
-The acquisition layer can later be replaced with physical sensor interfaces without changing the higher-level IPC and fault-monitoring architecture.
-11. Hardware Platform
-Raspberry Pi 4 Model B
-2 GB RAM
-QNX RTOS
-Physical interfaces prepared for:
-BMP280
-INA219
-HC-SR04
-Current prototype uses simulated sensor data.
-12. Project Structure
-smart-city-digital-twin-qnx/
-│
-├── include/
-│   ├── common.h
-│   ├── messages.h
-│   ├── twin_state.h
-│   └── fault_monitor.h
-│
-├── src/
-│   ├── acquisition/
-│   ├── synchronizer/
-│   ├── fault_monitor/
-│   ├── dashboard/
-│   ├── cli/
-│   ├── deadlock/
-│   └── smart_city_digital_twin.c
-│
-├── dashboard/
-├── docs/
-├── Makefile
-└── README.md
-
-13. Build
-make -j4 all
-
-Target platform:
-
-QNX 8.0
-AArch64
-Raspberry Pi 4
-14. Running the Application
-
-Start the Synchronizer:
-
-./smart_city_digital_twin sync
-
-Start Acquisition:
-
-./smart_city_digital_twin acq
-
-Start Fault Monitor:
-
-./smart_city_digital_twin fault
-
-Run the deadlock-avoidance demonstration:
-
-./smart_city_digital_twin deadlock
-15. Performance Observation
-The prototype successfully demonstrated continuous sensor-message synchronization on QNX.
-Example observed synchronization latencies were in the microsecond range during testing.
-The measured values are runtime observations from the prototype and are not claimed as guaranteed worst-case latency.
-QNX Momentics System Profiler can be used to analyze:
-Thread execution
-CPU utilization
-Scheduling
-Message timing
-System behavior under load
-16. Current Status
-✅ QNX application implemented
-✅ Raspberry Pi 4 deployment
-✅ Sensor acquisition threads
-✅ QNX message passing
-✅ Digital Twin shared state
-✅ Process-shared mutex
-✅ Real-time latency measurement
-✅ Sequence-gap detection
-✅ Stale-data monitoring
-✅ Process-death notification
-✅ Deadlock-avoidance demonstration
-✅ Momentics profiling support
-🔄 Physical sensor integration
-🔄 Dashboard enhancement
-17. Future Enhancements
-Integrate the physical BMP280, INA219, and HC-SR04 sensors.
-Add QNX-specific hardware interfaces/drivers where required.
-Develop a live web dashboard.
-Add historical sensor-data storage.
-Extend the system to additional smart-city subsystems.
-Perform controlled stress testing and collect detailed System Profiler results.
-Add stronger process recovery mechanisms for production deployment.
-18. Conclusion
-The project demonstrates how QNX RTOS can be used to build a real-time Smart City Digital Twin.
-The implementation focuses on deterministic communication, priority-based execution, synchronized shared state, and fault detection.
-The architecture is designed so that the current simulated acquisition layer can later be replaced with physical sensor interfaces.
